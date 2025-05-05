@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "framer-motion": "^12.9.7",
+    "p5": "^2.0.1",
+    "react-p5-wrapper": "^4.1.2"
+  }
+}
