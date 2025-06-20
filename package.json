@@ -1,7 +1,24 @@
 {
   "dependencies": {
-    "framer-motion": "^12.9.7",
+    "@chakra-ui/react": "^3.17.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@types/p5": "^1.7.6",
+    "framer-motion": "^12.10.4",
     "p5": "^2.0.1",
+    "p5.sound": "^0.2.0",
     "react-p5-wrapper": "^4.1.2"
+  },
+  "eslintConfig": {
+    "extends": [],
+    "rules": {},
+    "ignorePatterns": ["**/*"]
+  },
+  "scripts": {
+    "start:noeslint": "react-scripts start --no-eslint",
+    "start": "set DISABLE_ESLINT_PLUGIN=true && react-scripts start",
+    "build": "set DISABLE_ESLINT_PLUGIN=true && react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   }
 }
