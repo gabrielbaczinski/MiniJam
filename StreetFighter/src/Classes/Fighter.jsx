@@ -357,24 +357,20 @@ export class Fighter {
         if (this.power >= 100) {
             // Consumir toda a energia
             this.power = 0;
-            
-            // Estado base para animação super
-            // O Ken usa a mesma animação 'super' que já está carregada
+
+            // Estado base para animação super (padrão para todos)
             this.currentState = 'super';
             this.actionStartTime = Date.now();
             this.isAttacking = true;
             this.isCasting = true;
             this.castTimer = 60;
-            
+
+            // Definir direção para todos os personagens
+            const direction = this.isFacingLeft ? -1 : 1;
+
             // Efeitos visuais extras para o Ken
             if (this.character === 'ken') {
-                // Adicionar efeitos visuais para o ken usando o sistema de efeitos existente
                 if (!window.effects) window.effects = [];
-                
-                // Direção baseada na orientação do personagem
-                const direction = this.isFacingLeft ? -1 : 1;
-                
-                // Adicionar múltiplos efeitos de fogo ao redor do Ken
                 for (let i = 0; i < 8; i++) {
                     window.effects.push({
                         x: this.x + direction * (Math.random() * 60 - 30),
@@ -385,11 +381,10 @@ export class Fighter {
                     });
                 }
             }
-            
+
             // Comportamento específico por personagem
             switch (this.character) {
                 case 'ryu':
-                    // Ryu: Super Hadouken - Uma enorme rajada de energia azul
                     window.effects.push({
                         x: this.x + (direction * 50),
                         y: this.y - 60,
@@ -400,46 +395,32 @@ export class Fighter {
                         character: 'ryu',
                         direction: direction
                     });
-                    
-                    // Som de energia carregando
-                    // Som aqui se tiver sistema de áudio
-                    
-                    // Timer para checar hit no oponente
                     setTimeout(() => {
                         let opponent = this.name === 'Player 1' ? window.player2 : window.player1;
                         if (opponent) {
                             const isOpponentInDirection = 
                                 (direction > 0 && opponent.x > this.x) || 
                                 (direction < 0 && opponent.x < this.x);
-                            
                             if (isOpponentInDirection) {
                                 if (opponent.isBlocking) {
                                     opponent.takeDamage(15, direction);
-                            } else {
-                                opponent.takeDamage(30, direction);
-                                
-                                // Screen shake mais forte
-                                const canvas = document.querySelector('canvas');
-                                if (canvas) {
-                                    canvas.style.transition = 'none';
-                                    canvas.style.transform = `translateX(${Math.random() * 12 - 6}px)`;
-                                    setTimeout(() => {
-                                        canvas.style.transition = 'transform 0.2s';
-                                        canvas.style.transform = 'translateX(0)';
-                                    }, 100);
+                                } else {
+                                    opponent.takeDamage(30, direction);
+                                    const canvas = document.querySelector('canvas');
+                                    if (canvas) {
+                                        canvas.style.transition = 'none';
+                                        canvas.style.transform = `translateX(${Math.random() * 12 - 6}px)`;
+                                        setTimeout(() => {
+                                            canvas.style.transition = 'transform 0.2s';
+                                            canvas.style.transform = 'translateX(0)';
+                                        }, 100);
+                                    }
                                 }
-                            }
                             }
                         }
                     }, 500);
                     break;
-                    
                 case 'ken':
-                    // Ken: Shoryureppa - Múltiplos uppercuts flamejantes
-                    // Estado de animação especial
-                    this.currentState = 'special'; // Ken usa a animação special para super
-                    
-                    // Efeito de chamas
                     for (let i = 0; i < 15; i++) {
                         window.effects.push({
                             x: this.x + (Math.random() * 80 - 40),
@@ -449,87 +430,60 @@ export class Fighter {
                             size: 30 + Math.random() * 20
                         });
                     }
-                    
-                    // Movimento para cima (o Ken salta enquanto faz o uppercut)
                     this.vy = -15;
-                    this.y -= 20; // Salto instantâneo inicial
-                    
-                    // Verificar hit no oponente após um breve delay
+                    this.y -= 20;
                     setTimeout(() => {
                         let opponent = this.name === 'Player 1' ? window.player2 : window.player1;
                         if (opponent) {
-                            // Range para o Shoryureppa (uppercut)
                             const hitRange = 100;
                             const distance = Math.abs(this.x - opponent.x);
-                            
                             if (distance < hitRange) {
                                 if (opponent.isBlocking) {
                                     opponent.takeDamage(15, direction);
-                            } else {
-                                // Combo de hits múltiplos
-                                for (let i = 0; i < 3; i++) {
-                                    setTimeout(() => {
-                                        opponent.takeDamage(10, direction);
-                                        // Efeito de hit para cada golpe
-                                        window.effects.push({
-                                            x: opponent.x,
-                                            y: opponent.y - 60 - (i * 20),
-                                            type: 'hit',
-                                            timer: 15,
-                                            size: 40
-                                        });
-                                    }, i * 200);
+                                } else {
+                                    for (let i = 0; i < 3; i++) {
+                                        setTimeout(() => {
+                                            opponent.takeDamage(10, direction);
+                                            window.effects.push({
+                                                x: opponent.x,
+                                                y: opponent.y - 60 - (i * 20),
+                                                type: 'hit',
+                                                timer: 15,
+                                                size: 40
+                                            });
+                                        }, i * 200);
+                                    }
+                                    window.effects.push({
+                                        x: opponent.x,
+                                        y: opponent.y - 80,
+                                        type: 'special',
+                                        timer: 30,
+                                        size: 60
+                                    });
                                 }
-                                
-                                // Efeito visual de uppercut
-                                window.effects.push({
-                                    x: opponent.x,
-                                    y: opponent.y - 80,
-                                    type: 'special',
-                                    timer: 30,
-                                    size: 60
-                                });
-                            }
                             }
                         }
                     }, 300);
                     break;
-                    
                 case 'chun-li':
-                    // Chun-Li: Hyakuretsu Kyaku - Lightning Legs (múltiplos chutes)
-                    
-                    // Definir um timer mais curto para evitar travamento
-                    this.castTimer = 40; // Reduzido de 60 para 40
-                    
-                    // Estado específico para não conflitar com outros
-                    this.currentState = 'special'; // Usar 'special' em vez de 'super'
-                    
+                    this.castTimer = 40;
                     window.effects.push({
                         x: this.x + (direction * 40),
                         y: this.y - 50,
                         type: 'lightning-kick',
-                        timer: 40, // Reduzido de 50 para 40
+                        timer: 40,
                         size: 60,
                         direction: direction
                     });
-                    
-                    // Criar sequência de hits rápidos
                     const opponent = this.name === 'Player 1' ? window.player2 : window.player1;
                     if (opponent) {
                         const hitRange = 120;
                         const distance = Math.abs(this.x - opponent.x);
-                        
                         if (distance < hitRange && 
                             ((direction > 0 && opponent.x > this.x) || 
                              (direction < 0 && opponent.x < this.x))) {
-                        
-                            // 10 hits rápidos
                             const totalDamage = opponent.isBlocking ? 15 : 30;
-                            
-                            // Aplicar dano total de uma vez
                             opponent.takeDamage(totalDamage, direction * 0.5);
-                            
-                            // Efeitos visuais para cada hit
                             for (let i = 0; i < 10; i++) {
                                 setTimeout(() => {
                                     window.effects.push({
@@ -539,8 +493,6 @@ export class Fighter {
                                         timer: 10,
                                         size: 25 + Math.random() * 15
                                     });
-                                    
-                                    // Pequeno shake a cada hit
                                     const canvas = document.querySelector('canvas');
                                     if (canvas) {
                                         canvas.style.transform = `translateX(${Math.random() * 4 - 2}px)`;
@@ -548,24 +500,19 @@ export class Fighter {
                                             canvas.style.transform = 'translateX(0)';
                                         }, 50);
                                     }
-                                }, i * 100); // Um hit a cada 100ms
+                                }, i * 100);
                             }
                         }
                     }
-                    
-                    // IMPORTANTE: Garantir que a Chun-Li volte ao estado normal
                     setTimeout(() => {
-                        if (this.currentState === 'special' || this.currentState === 'super') {
+                        if (this.currentState === 'super' || this.currentState === 'special') {
                             this.currentState = 'idle';
                             this.isAttacking = false;
                             this.isCasting = false;
                         }
-                    }, 500); // Tempo reduzido para 500ms
-                    
+                    }, 500);
                     break;
-                    
                 case 'makoto':
-                    // Makoto: Seichusen Godanzuki - Golpe de energia de longo alcance
                     window.effects.push({
                         x: this.x,
                         y: this.y - 60,
@@ -576,39 +523,32 @@ export class Fighter {
                         character: 'makoto',
                         direction: direction
                     });
-                    
-                    // Verificar hit após breve delay
                     setTimeout(() => {
                         const opponent = this.name === 'Player 1' ? window.player2 : window.player1;
                         if (opponent) {
                             const isOpponentInDirection = 
                                 (direction > 0 && opponent.x > this.x) || 
                                 (direction < 0 && opponent.x < this.x);
-                        
                             if (isOpponentInDirection) {
                                 if (opponent.isBlocking) {
                                     opponent.takeDamage(15, direction);
-                            } else {
-                                opponent.takeDamage(30, direction);
-                                
-                                // Efeito de impacto
-                                for (let i = 0; i < 5; i++) {
-                                    window.effects.push({
-                                        x: opponent.x + (direction * 20),
-                                        y: opponent.y - 60,
-                                        type: 'hit',
-                                        timer: 20,
-                                        size: 50 + (i * 10)
-                                    });
+                                } else {
+                                    opponent.takeDamage(30, direction);
+                                    for (let i = 0; i < 5; i++) {
+                                        window.effects.push({
+                                            x: opponent.x + (direction * 20),
+                                            y: opponent.y - 60,
+                                            type: 'hit',
+                                            timer: 20,
+                                            size: 50 + (i * 10)
+                                        });
+                                    }
                                 }
-                            }
                             }
                         }
                     }, 400);
                     break;
-                    
                 default:
-                    // Fallback para outros personagens - usar Kamehameha genérico
                     window.effects.push({
                         x: this.x + (direction * 50),
                         y: this.y - 60,
@@ -620,7 +560,7 @@ export class Fighter {
                         direction: direction
                     });
             }
-            
+
             // Finalizar a animação depois de um tempo
             setTimeout(() => {
                 this.isAttacking = false;
@@ -868,7 +808,9 @@ export class Fighter {
                     case 'win': currentSprite = this.sprites.win || this.sprites.idle; break;
                     case 'lost': currentSprite = this.sprites.lost || this.sprites.damage; break;
                     case 'special': currentSprite = this.sprites.special; break;
-                    case 'super': currentSprite = this.sprites.super || this.sprites.special; break;
+                    case 'super':
+                        currentSprite = this.sprites.super || this.sprites.special;
+                        break;
                     default: currentSprite = this.sprites.idle;
                 }
             }

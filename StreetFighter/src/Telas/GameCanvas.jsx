@@ -36,6 +36,15 @@ if (typeof window !== 'undefined') {
 }
 
 const GameCanvas = React.memo(({ selectedCharacters = { player1: 'ryu', player2: 'ken' }, onGameEnd, onGameReady }) => {
+    // Novo estado para controlar o loading
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    // Função para ser chamada quando o jogo estiver pronto
+    const handleGameReady = React.useCallback(() => {
+        setIsLoading(false);
+        if (typeof onGameReady === 'function') onGameReady();
+    }, [onGameReady]);
+
     // Verificar instâncias duplicadas no momento da montagem
     useEffect(() => {
         console.log("GameCanvas montado");
@@ -58,9 +67,8 @@ const GameCanvas = React.memo(({ selectedCharacters = { player1: 'ryu', player2:
             window.exitRequested = false;
             window.projectiles = [];
             window.effects = [];
-            
             // Remover event listeners específicos do jogo
-            window.removeEventListener('keydown', window._escapeHandler);
+            // window.removeEventListener('keydown', window._escapeHandler); // Removido para não interferir no ESC do p5.js
         };
     }, []);
 
@@ -155,16 +163,20 @@ const GameCanvas = React.memo(({ selectedCharacters = { player1: 'ryu', player2:
                         fixedPath = '/Sprites/' + fixedPath;
                     }
                 }
-                console.log(`Tentando carregar imagem de: ${fixedPath}`);
+                // Adiciona cache-buster para forçar recarregamento
+                const cacheBuster = `cb=${Date.now()}_${Math.floor(Math.random()*100000)}`;
+                const sep = fixedPath.includes('?') ? '&' : '?';
+                const urlWithCacheBuster = `${fixedPath}${sep}${cacheBuster}`;
+                console.log(`Tentando carregar imagem de: ${urlWithCacheBuster}`);
                 return new Promise((resolve) => {
                     p.loadImage(
-                        fixedPath,
+                        urlWithCacheBuster,
                         img => {
-                            console.log(`Imagem ${fixedPath} carregada com sucesso, dimensões: ${img.width}x${img.height}`);
+                            console.log(`Imagem ${urlWithCacheBuster} carregada com sucesso, dimensões: ${img.width}x${img.height}`);
                             resolve(img);
                         },
                         () => {
-                            console.error(`Erro ao carregar ${fixedPath}`);
+                            console.error(`Erro ao carregar ${urlWithCacheBuster}`);
                             // Criar fallback mais visível
                             const fallbackImg = createFallbackImage(character, fixedPath);
                             resolve(fallbackImg);
@@ -503,11 +515,11 @@ function createDefaultSprites(character, p) {
                     setupComplete = true;
                     
                     // Garantir que onGameReady seja chamado apenas uma vez
-                    if (!gameReadyNotified && typeof onGameReady === 'function') {
+                    if (!gameReadyNotified) {
                         console.log("GameCanvas: Notificando que está pronto");
                         gameReadyNotified = true;
                         setTimeout(() => {
-                            onGameReady();
+                            handleGameReady();
                         }, 500); // Pequeno delay para garantir que tudo foi processado
                     }
                 } catch (error) {
@@ -682,10 +694,9 @@ function createDefaultSprites(character, p) {
                 // Verificar tecla SPACE separadamente para encerrar o jogo
                 if (window.keyState[32] && window.gameOver) { // 32 = SPACE
                     console.log("Tecla espaço pressionada no game over");
-                    
-                    // Garantir que liberamos a tecla antes de processar
                     if (!window.spaceProcessed) {
                         window.spaceProcessed = true;
+                        restartMatch(); // Recarregar sprites e recriar jogadores
                         if (typeof onGameEnd === 'function') {
                             onGameEnd(window.winner);
                         }
@@ -1260,11 +1271,63 @@ function createDefaultSprites(character, p) {
             p.text("Press ESC to resume", p.width/2, p.height - 50);
         }
         
+        // Função para reiniciar completamente a partida, recarregando sprites e recriando jogadores
+        async function restartMatch() {
+            // Recarregar sprites dos personagens selecionados
+            let p1Character = selectedCharacters?.player1 || 'ryu';
+            let p2Character = selectedCharacters?.player2 || 'ken';
+            sprites[p1Character] = await loadSprite(p, p1Character);
+            sprites[p2Character] = await loadSprite(p, p2Character);
+            // Recriar jogadores com sprites novos
+            player1 = new Fighter(
+                200,
+                450,
+                "Player 1",
+                [65, 68, 87, 83], // A, D, W, S
+                70, // F
+                71, // G
+                [81], // Q
+                [69], // E
+                p,
+                sprites[p1Character],
+                p1Character
+            );
+            player2 = new Fighter(
+                600,
+                450,
+                "Player 2",
+                [37, 39, 38, 40], // Setas
+                75, // K
+                76, // L
+                [73], // I
+                [79], // O
+                p,
+                sprites[p2Character],
+                p2Character
+            );
+            window.player1 = player1;
+            window.player2 = player2;
+            // Resetar projéteis e efeitos
+            window.projectiles = [];
+            window.effects = [];
+            // Resetar timer e estados globais
+            gameTime = 99;
+            lastSecond = p.frameCount;
+            window.gameOver = false;
+            window.winner = null;
+            player1.currentState = 'intro';
+            player2.currentState = 'intro';
+            setTimeout(() => {
+                if (player1.currentState === 'intro') player1.currentState = 'idle';
+                if (player2.currentState === 'intro') player2.currentState = 'idle';
+            }, 3000);
+        }
+        
         let uiSprites = {}; // Inicialize como objeto vazio
-    }, [selectedCharacters, onGameEnd, onGameReady]);
-    
+    }, [selectedCharacters, onGameEnd, handleGameReady]);
+
     const canvasRef = useP5(sketchFunction);
-    
+
     // Garantir que o foco do canvas seja mantido para capturar inputs
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -1284,23 +1347,62 @@ function createDefaultSprites(character, p) {
         }
     }, [canvasRef]);
     
+    // Adiciona listener global para ESC pausar/despausar
+    useEffect(() => {
+        function handleEscKey(e) {
+            if (e.keyCode === 27) { // ESC
+                window.gamePaused = !window.gamePaused;
+                e.preventDefault();
+            }
+        }
+        window.addEventListener('keydown', handleEscKey);
+        return () => {
+            window.removeEventListener('keydown', handleEscKey);
+        };
+    }, []);
+
     return (
-        <div 
-            ref={canvasRef}
-            tabIndex={0}
-            id="game-canvas-container" // Adicione um ID para debugging
-            style={{ 
-                outline: 'none',
-                width: '800px',
-                height: '450px',
-                margin: '0 auto',
-                imageRendering: 'pixelated',
-                WebkitImageRendering: 'pixelated',
-                mozImageRendering: 'pixelated',
-                msImageRendering: 'pixelated',
-                boxShadow: '0 10px 20px rgba(0,0,0,0.3)'
-            }}
-        />
+        <div style={{ position: 'relative', width: '800px', height: '450px', margin: '0 auto' }}>
+            {/* Canvas do jogo */}
+            <div 
+                ref={canvasRef}
+                tabIndex={0}
+                id="game-canvas-container"
+                style={{ 
+                    outline: 'none',
+                    width: '800px',
+                    height: '450px',
+                    imageRendering: 'pixelated',
+                    WebkitImageRendering: 'pixelated',
+                    mozImageRendering: 'pixelated',
+                    msImageRendering: 'pixelated',
+                    boxShadow: '0 10px 20px rgba(0,0,0,0.3)'
+                }}
+            />
+            {/* Overlay de loading */}
+            {isLoading && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0,0,0,0.85)',
+                    color: '#fff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10,
+                    fontSize: 28,
+                    letterSpacing: 2
+                }}>
+                    <div style={{marginBottom: 20}}>Carregando...</div>
+                    <div className="loader" style={{border: '6px solid #333', borderTop: '6px solid #fff', borderRadius: '50%', width: 48, height: 48, animation: 'spin 1s linear infinite'}}></div>
+                    <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
+                </div>
+            )}
+        </div>
     );
 });
 
