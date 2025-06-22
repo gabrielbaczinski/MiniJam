@@ -146,21 +146,27 @@ const GameCanvas = React.memo(({ selectedCharacters = { player1: 'ryu', player2:
             console.log(`Carregando sprites para ${character}...`);
             
             const loadImageAsync = (path) => {
-                // Correção importante: remover a barra inicial do caminho para compatibilidade
-                const fixedPath = path.startsWith('/') ? path.substring(1) : path;
+                // Garante que o caminho sempre começa com '/Sprites/'
+                let fixedPath = path;
+                if (!fixedPath.startsWith('/Sprites/')) {
+                    if (fixedPath.startsWith('Sprites/')) {
+                        fixedPath = '/' + fixedPath;
+                    } else {
+                        fixedPath = '/Sprites/' + fixedPath;
+                    }
+                }
                 console.log(`Tentando carregar imagem de: ${fixedPath}`);
-                
                 return new Promise((resolve) => {
                     p.loadImage(
                         fixedPath,
                         img => {
-                            console.log(`Imagem ${path} carregada com sucesso, dimensões: ${img.width}x${img.height}`);
+                            console.log(`Imagem ${fixedPath} carregada com sucesso, dimensões: ${img.width}x${img.height}`);
                             resolve(img);
                         },
                         () => {
-                            console.error(`Erro ao carregar ${path}`);
+                            console.error(`Erro ao carregar ${fixedPath}`);
                             // Criar fallback mais visível
-                            const fallbackImg = createFallbackImage(character, path);
+                            const fallbackImg = createFallbackImage(character, fixedPath);
                             resolve(fallbackImg);
                         }
                     );
