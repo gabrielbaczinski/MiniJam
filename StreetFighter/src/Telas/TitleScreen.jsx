@@ -62,7 +62,7 @@ const TitleScreen = ({ onNavigate }) => {
       </div>
       
       {showPressStart && (
-        <div className="press-start">PRESS ENTER TO CONTINUE</div>
+        <div className="press-start">PRESSIONE ENTER PARA CONTINUAR</div>
       )}
       
       <div className="menu-options">
@@ -70,24 +70,24 @@ const TitleScreen = ({ onNavigate }) => {
           className={`menu-item ${selected === 0 ? 'selected' : ''}`}
           onClick={() => { setSelected(0); handleSelect(); }}
         >
-          ARCADE MODE
+           VERSUS
         </div>
         <div 
           className={`menu-item ${selected === 1 ? 'selected' : ''}`}
           onClick={() => { setSelected(1); handleSelect(); }}
         >
-          HOW TO PLAY
+          COMO JOGAR
         </div>
         <div 
           className={`menu-item ${selected === 2 ? 'selected' : ''}`}
           onClick={() => { setSelected(2); handleSelect(); }}
         >
-          EXIT
+          SAIR
         </div>
       </div>
       
       <div className="sf-footer">
-        © 2023 CAPCOM inspired game
+        © Criado por Gabriel Baczinski e João Guilherme Camargo
       </div>
     </div>
   );

@@ -82,46 +82,44 @@ export class Projectile {
 
   checkCollision(player) {
     if (!this.isActive || !player || this.owner === player) return false;
-    
-    // Simple collision detection using rectangles
-    const projLeft = this.x - this.size/2;
-    const projRight = this.x + this.size/2;
-    const projTop = this.y - this.size/2;
-    const projBottom = this.y + this.size/2;
-    
-    const playerLeft = player.x - player.width/2;
-    const playerRight = player.x + player.width/2;
+    // Hitbox cobre toda a altura do personagem adversário
+    // Aumenta a largura da hitbox do projétil e do player para facilitar o acerto
+    const projWidth = this.size * 1.5;
+    const projHeight = this.size * 1.2;
+    const projLeft = this.x - projWidth/2;
+    const projRight = this.x + projWidth/2;
+    const projTop = this.y - projHeight/2;
+    const projBottom = this.y + projHeight/2;
+
+    const playerWidth = player.width * 1.2;
+    const playerLeft = player.x - playerWidth/2;
+    const playerRight = player.x + playerWidth/2;
     const playerTop = player.y - player.height;
     const playerBottom = player.y;
-    
-    if (projRight > playerLeft && 
-        projLeft < playerRight && 
-        projBottom > playerTop && 
-        projTop < playerBottom) {
-        
-        const knockbackDirection = this.isGoingLeft ? -1 : 1;
-        
-        // Apply damage to the player (reduced if blocking)
-        player.takeDamage(
-            player.isBlocking ? Math.floor(this.damage * 0.4) : this.damage,
-            knockbackDirection
-        );
-        
-        // Create hit effect
-        if (window.effects) {
-            window.effects.push({
-                x: this.x,
-                y: this.y,
-                type: player.isBlocking ? 'block' : 'hit',
-                timer: 15,
-                size: this.size * 1.5
-            });
-        }
-        
-        this.isActive = false;
-        return true;
+
+    if (
+      projRight > playerLeft &&
+      projLeft < playerRight &&
+      projBottom > playerTop &&
+      projTop < playerBottom
+    ) {
+      const knockbackDirection = this.isGoingLeft ? -1 : 1;
+      player.takeDamage(
+        player.isBlocking ? Math.floor(this.damage * 0.4) : this.damage,
+        knockbackDirection
+      );
+      if (window.effects) {
+        window.effects.push({
+          x: this.x,
+          y: this.y,
+          type: player.isBlocking ? 'block' : 'hit',
+          timer: 15,
+          size: this.size * 1.5
+        });
+      }
+      this.isActive = false;
+      return true;
     }
-    
     return false;
   }
 

@@ -4,7 +4,6 @@ import GameCanvas from './Telas/GameCanvas';
 import TitleScreen from './Telas/TitleScreen';
 import CharacterSelect from './Telas/CharacterSelect';
 import Credits from './Telas/Credits';
-import LoadingScreen from './Telas/LoadingScreen';
 
 function App() {
   // Estado para controlar qual tela está sendo mostrada
@@ -128,7 +127,7 @@ function App() {
   const renderScreen = () => {
     // Mostrar tela de carregamento apenas se estiver carregando E não estiver no jogo ainda
     if ((isLoading || currentScreen === 'loading') && !gameReady) {
-      return <LoadingScreen />;
+      return null; // Removido LoadingScreen
     }
     
     switch (currentScreen) {
